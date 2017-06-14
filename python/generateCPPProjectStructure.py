@@ -24,30 +24,42 @@ class BasicCMakeGenerator:
         strIO.write("\n")
         strIO.write("set(CMAKE_CXX_STANDARD " + self.cxxVersion + ")\n")
         strIO.write("\n")
-        strIO.write("#add_definitions(\"-DDEVELOPMENT_BUILD\")\n")
+        strIO.write("#add_definitions(\"-DDEVELOPMENT_BUILD\")\n\n\n")
         strIO.write("set(" + self.projectName.upper() + "_PUBLIC_HEADERS \"" + \
                join(join("${CMAKE_CURRENT_LIST_DIR}", self.paths["pubHeaders"][len(self.projectName) + 1:]), self.projectName.lower()) + ".h\")\n")
         strIO.write("set(" + self.projectName.upper() + "_PRIVATE_HEADERS \"" + join("${CMAKE_CURRENT_LIST_DIR}", self.paths["privHeaders"][len(self.projectName) + 1:]) + "\")\n")
         strIO.write("set(" + self.projectName.upper() + "_SRC \"" + join(join("${CMAKE_CURRENT_LIST_DIR}", self.paths["src"][len(self.projectName) + 1:]), self.projectName.lower()) + ".cpp\")\n")
         strIO.write("\n")
 
+        targetDestination="bin"
+        strIO.write("set(INSTALL_TARGET_TYPE \"\")\n")
         if self.defaultTargetType == "lib":
             strIO.write("add_library(${PROJECT_NAME} "
-                                                 + " ${" + self.projectName.upper() + "_SRC}" \
-                                                 + " ${" + self.projectName.upper() + "_PUBLIC_HEADERS}" \
-                                                 + " ${" + self.projectName.upper() + "_PRIVATE_HEADERS}" \
-                                                 + ")\n")
-            strIO.write("install(TARGETS \"${PROJECT_NAME}\" DESTINATION \"/usr/local/lib/\" PUBLIC_HEADER DESTINATION \"/usr/local/include/" + self.projectName + "/\" COMPONENT \"${PROJECT_NAME}\")\n")
+                             + " ${" + self.projectName.upper() + "_SRC}" \
+                             + " ${" + self.projectName.upper() + "_PUBLIC_HEADERS}" \
+                             + " ${" + self.projectName.upper() + "_PRIVATE_HEADERS}" \
+                             + ")\n")
+            targetDestination="lib"
+
+            strIO.write("set(INSTALL_TARGET_TYPE \"ARCHIVE\")\n\n")
+            strIO.write("if(BUILD_SHARED_LIBS)\n")
+            strIO.write("   set(INSTALL_TARGET_TYPE \"LIBRARY\")\n")
+            strIO.write("endif()\n")
         else:
             strIO.write("add_executable(${PROJECT_NAME} "
-                                                 + " ${" + self.projectName.upper() + "_SRC}" \
-                                                 + " ${" + self.projectName.upper() + "_PUBLIC_HEADERS}" \
-                                                 + " ${" + self.projectName.upper() + "_PRIVATE_HEADERS}" \
-                                                 + ")\n")
-            strIO.write("install(TARGETS \"${PROJECT_NAME}\" DESTINATION \"/usr/local/bin/\" PUBLIC_HEADER DESTINATION \"/usr/local/include/" + self.projectName + "/\" COMPONENT \"${PROJECT_NAME}\")\n")
+                             + " ${" + self.projectName.upper() + "_SRC}" \
+                             + " ${" + self.projectName.upper() + "_PUBLIC_HEADERS}" \
+                             + " ${" + self.projectName.upper() + "_PRIVATE_HEADERS}" \
+                             + ")\n")
 
-        strIO.write("target_include_directories(${PROJECT_NAME} PUBLIC \"" + \
-                    join("${CMAKE_CURRENT_LIST_DIR}", self.paths["pubInc"][len(self.projectName) + 1:]) + "\")")
+        strIO.write("set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER ${" + self.projectName.upper() + "_PUBLIC_HEADERS})\n")
+        strIO.write("target_include_directories(${PROJECT_NAME} PUBLIC\n" + \
+            "   $<BUILD_INTERFACE:" + join("${CMAKE_CURRENT_LIST_DIR}", self.paths["pubInc"][len(self.projectName) + 1:]) + ">\n" + \
+            "   $<INSTALL_INTERFACE:" + join("${CMAKE_CURRENT_LIST_DIR}", self.paths["pubInc"][len(self.projectName) + 1:]) + ">\n" + \
+            "   PRIVATE " + join("${CMAKE_CURRENT_LIST_DIR}", self.paths["privInc"][len(self.projectName) + 1:]) + \
+            ")\n")
+        strIO.write("install(TARGETS ${PROJECT_NAME} " + " ${INSTALL_TARGET_TYPE} DESTINATION \"" + targetDestination + "\" "+ \
+                " PUBLIC_HEADER DESTINATION \"include/" + self.projectName + "\")\n")
 
         strIO.write("\n")
 
@@ -69,10 +81,31 @@ class MainCMakeGenerator(BasicCMakeGenerator):
         return strIO.getvalue()
 
 
+def generateDefaultEnvironmentScript(paths):
+    f = open(join(paths["scriptRes"], "defaultBaseEnvironment.sh"), "w")
+    f.write("#!/bin/bash\n\n")
+    f.write("export BASE_ENVIRONMENT_SCRIPT_PATH=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\";\n")
+    f.write("export BUILD_ROOT=\"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../../build/\";\n")
+    f.write("export INSTALL_PREFIX=\"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../../sysroot/\";\n")
+    f.close()
+
+
+def generateDefaultInitProjectScript(paths):
+    f = open(join(paths["scriptRes"], "defaultInitProject.sh"), "w")
+    f.write("#!/bin/bash\n")
+    f.write("SCRIPT_PATH=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\";\n")
+    f.write(". ${SCRIPT_PATH}/defaultBaseEnvironment.sh;\n")
+    f.write("mkdir -p \"${BUILD_ROOT}\";\n")
+    f.write("mkdir -p \"${INSTALL_PREFIX}\";\n")
+    f.close()
+
+
 def generatePaths(args):
     base = args.projectName
 
     docs = join(base, "documentation")
+    resources = join(base, "resources")
+    scriptRes = join(resources, "scripts")
 
     code = join(base, "code")
     pub = join(code, "public")
@@ -86,7 +119,8 @@ def generatePaths(args):
 
     paths = { "base": base, "docs": docs, "code" : code, "pub" : pub, "priv" : priv,\
               "pubHeaders" : pubHeaders, "privHeaders" : privHeaders, "src" : src, \
-              "pubInc" : pubInc, "privInc" : privInc, "test": test}
+              "pubInc" : pubInc, "privInc" : privInc, "test": test, "resources" : resources, \
+              "scriptRes" : scriptRes }
 
     for name, d in paths.items():
         os.makedirs(d, 0o755, True)
@@ -120,10 +154,22 @@ def generateMakeScript(paths, args):
     f.write("echo \"Building: " + args.projectName + "\";\n")
     f.write("PROJECT_PATH=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
     f.write(". ${PROJECT_PATH}/../baseEnvironment.sh;\n\n")
-    f.write("pushd \"" + join("${BUILD_ROOT}", args.projectName) + "\";\n")
-    f.write("cmake \"${PROJECT_PATH}\";\n")
-    f.write("make;\n")
-    f.write("popd;\n")
+    f.write("mkdir -p \"" + join("${BUILD_ROOT}", args.projectName) + "\";\n")
+    f.write("which ctime 2> /dev/null;\n")
+    f.write("HAVE_CTIME=$?;\n\n")
+
+    f.write("pushd \"" + join("${BUILD_ROOT}", args.projectName) + "\";\n\n")
+    f.write("if [ \"${HAVE_CTIME}\" -eq \"0\" ]; then ctime -begin " + args.projectName + ".ct; fi\n")
+    f.write("cmake -DCMAKE_INSTALL_PREFIX:PATH=\"${INSTALL_PREFIX}\" -G Ninja \"${PROJECT_PATH}\";\n")
+    f.write("ninja;\n")
+    f.write("ninja install;\n\n")
+
+    f.write("if [ \"${HAVE_CTIME}\" -eq \"0\" ]; then ctime -end " + args.projectName + ".ct; fi\n")
+    f.write("if [ \"${HAVE_CTIME}\" -eq \"0\" ]; then ctime -stats " + args.projectName + ".ct; fi\n\n")
+
+    f.write("popd 2&>1 /dev/null;\n\n")
+
+    f.write("echo \"Build finished!\";")
     f.close()
 
 
@@ -141,3 +187,6 @@ if __name__ == "__main__":
     generateCMakeFiles(paths, args)
     generateMakeScript(paths, args)
     generateDefaultSourceFiles(paths, args)
+    generateDefaultEnvironmentScript(paths)
+    generateDefaultInitProjectScript(paths)
+
