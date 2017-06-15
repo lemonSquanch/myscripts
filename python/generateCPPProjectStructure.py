@@ -249,11 +249,18 @@ if __name__ == "__main__":
     print("Generating your project!\n")
 
     argParser = argparse.ArgumentParser(description="Generates the base structure of a new c++ project.")
-    argParser.add_argument("projectName", help="The name of your new project.")
+    argParser.add_argument("projectName", help="The alphanum name of your new project.")
     argParser.add_argument("--cppVersion", help="The c++ standard that the project should use. Default is 14.", choices=["03","11","14","17"], default="14")
     argParser.add_argument("--minCMakeVersion", default="3.8.2", help="CMake version requirement.")
     argParser.add_argument("--defaultTargetType", choices=["lib", "exec"], default="lib", help="The type of target that will be built in the project(library, executable). Default value is library.")
     args = argParser.parse_args()
+
+    invalidNameTokens =  ["/", "\\", ":", ",", "<", ">", "[", "]", "{", "}", "|", "'", "\"", ";", "=", "+", "*", "!", "@", "#", "$", "%", "^", "&", "(", ")"]
+    for invalidToken in invalidNameTokens:
+        if invalidToken in args.projectName:
+            print("Error: Invalid project name specified, please don't use any of the following characters: " + "".join(invalidNameTokens))
+            print("       Try to use alphanum characters instead!")
+            sys.exit(-1)
 
     paths = generatePaths(args)
     generateCMakeFiles(paths, args)
