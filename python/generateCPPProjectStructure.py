@@ -32,7 +32,6 @@ class BasicCMakeGenerator:
         strIO.write("\n")
 
         targetDestination="bin"
-        strIO.write("set(INSTALL_TARGET_TYPE \"\")\n")
         if self.defaultTargetType == "lib":
             strIO.write("add_library(${PROJECT_NAME} "
                              + " ${" + self.projectName.upper() + "_SRC}" \
@@ -41,9 +40,10 @@ class BasicCMakeGenerator:
                              + ")\n")
             targetDestination="lib"
 
-            strIO.write("set(INSTALL_TARGET_TYPE \"ARCHIVE\")\n\n")
             strIO.write("if(BUILD_SHARED_LIBS)\n")
             strIO.write("   set(INSTALL_TARGET_TYPE \"LIBRARY\")\n")
+            strIO.write("else()\n")
+            strIO.write("   set(INSTALL_TARGET_TYPE \"ARCHIVE\")\n")
             strIO.write("endif()\n")
         else:
             strIO.write("add_executable(${PROJECT_NAME} "
@@ -51,6 +51,7 @@ class BasicCMakeGenerator:
                              + " ${" + self.projectName.upper() + "_PUBLIC_HEADERS}" \
                              + " ${" + self.projectName.upper() + "_PRIVATE_HEADERS}" \
                              + ")\n")
+            strIO.write("set(INSTALL_TARGET_TYPE \"\")\n")
 
         strIO.write("set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER ${" + self.projectName.upper() + "_PUBLIC_HEADERS})\n")
         strIO.write("target_include_directories(${PROJECT_NAME} PUBLIC\n" + \
