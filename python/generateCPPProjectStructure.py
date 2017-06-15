@@ -262,3 +262,4 @@ if __name__ == "__main__":
     generateDefaultEnvironmentScript(paths)
     generateDefaultInitProjectScript(paths)
     generateDefaultClangFormatConfig(paths)
+    print("Project generation finished..")
