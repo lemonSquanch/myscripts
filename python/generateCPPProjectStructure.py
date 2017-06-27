@@ -88,6 +88,7 @@ def generateDefaultEnvironmentScript(paths):
     f.write("export BASE_ENVIRONMENT_SCRIPT_PATH=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\";\n")
     f.write("export BUILD_ROOT=\"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../../build/\";\n")
     f.write("export INSTALL_PREFIX=\"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../../sysroot/\";\n")
+    f.write("export PROJECT_ROOT=\"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../../\";\n")
     f.close()
 
 
@@ -98,76 +99,96 @@ def generateDefaultInitProjectScript(paths):
     f.write(". ${SCRIPT_PATH}/defaultBaseEnvironment.sh;\n")
     f.write("mkdir -p \"${BUILD_ROOT}\";\n")
     f.write("mkdir -p \"${INSTALL_PREFIX}\";\n")
-    f.write("mv " + join(paths["configRes"], ".clang-format") + "  \"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../\";\n")
+    f.write("mv " + join("${PROJECT_ROOT}", join(paths["configRes"], ".clang-format"))+ "  \"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../\";\n")
     f.close()
 
 
 def generateDefaultClangFormatConfig(paths):
     f = open(join(paths["configRes"], ".clang-format"), "w")
-    f.write("---\n\
-        Language:        Cpp\n\
-        # BasedOnStyle:  WebKit\n\
-        AccessModifierOffset: -4\n\
-        AlignAfterOpenBracket: true\n\
-        AlignEscapedNewlinesLeft: true\n\
-        AlignOperands:   true\n\
-        AlignTrailingComments: true\n\
-        AllowAllParametersOfDeclarationOnNextLine: true\n\
-        AllowShortBlocksOnASingleLine: false\n\
-        AllowShortCaseLabelsOnASingleLine: false\n\
-        AllowShortIfStatementsOnASingleLine: false\n\
-        AllowShortLoopsOnASingleLine: false\n\
-        AllowShortFunctionsOnASingleLine: Empty\n\
-        AlwaysBreakAfterDefinitionReturnType: false\n\
-        AlwaysBreakTemplateDeclarations: true\n\
-        AlwaysBreakBeforeMultilineStrings: false\n\
-        BreakBeforeBinaryOperators: NonAssignment\n\
-        BreakBeforeTernaryOperators: false\n\
-        BreakConstructorInitializersBeforeComma: true\n\
-        BinPackParameters: false\n\
-        BinPackArguments: false\n\
-        ColumnLimit:     120\n\
-        ConstructorInitializerAllOnOneLineOrOnePerLine: true\n\
-        ConstructorInitializerIndentWidth: 4\n\
-        DerivePointerAlignment: false\n\
-        ExperimentalAutoDetectBinPacking: false\n\
-        IndentCaseLabels: true\n\
-        IndentWrappedFunctionNames: false\n\
-        IndentFunctionDeclarationAfterType: false\n\
-        MaxEmptyLinesToKeep: 1\n\
-        KeepEmptyLinesAtTheStartOfBlocks: false\n\
-        NamespaceIndentation: None\n\
-        ObjCBlockIndentWidth: 2\n\
-        ObjCSpaceAfterProperty: false\n\
-        ObjCSpaceBeforeProtocolList: true\n\
-        PenaltyBreakBeforeFirstCallParameter: 510\n\
-        PenaltyBreakComment: 300\n\
-        PenaltyBreakString: 310\n\
-        PenaltyBreakFirstLessLess: 410\n\
-        PenaltyExcessCharacter: 1000000\n\
-        PenaltyReturnTypeOnItsOwnLine: 60\n\
-        PointerAlignment: Left\n\
-        SpacesBeforeTrailingComments: 1\n\
-        Cpp11BracedListStyle: true\n\
-        Standard:        Cpp11\n\
-        IndentWidth:     4\n\
-        TabWidth:        4\n\
-        UseTab:          Never\n\
-        BreakBeforeBraces: Allman\n\
-        SpacesInParentheses: false\n\
-        SpacesInSquareBrackets: false\n\
-        SpacesInAngles:  false\n\
-        SpaceInEmptyParentheses: false\n\
-        SpacesInCStyleCastParentheses: false\n\
-        SpaceAfterCStyleCast: true\n\
-        SpacesInContainerLiterals: false\n\
-        SpaceBeforeAssignmentOperators: true\n\
-        ContinuationIndentWidth: 4\n\
-        CommentPragmas:  '^ IWYU pragma:'\n\
-        ForEachMacros:   [ foreach, Q_FOREACH, BOOST_FOREACH ]\n\
-        SpaceBeforeParens: Never\n\
-        DisableFormat:   false\n\
-        ...\n")
+    f.write("---\n" +
+        "Language:        Cpp\n" +
+        "AccessModifierOffset: -4\n" +
+        "AlignAfterOpenBracket: Align\n" +
+        "# AlignEscapedNewlines: Left\n" +
+        "AlignOperands:   true\n" +
+        "AlignTrailingComments: true\n" +
+        "AllowAllParametersOfDeclarationOnNextLine: true\n" +
+        "AllowShortBlocksOnASingleLine: false\n" +
+        "AllowShortCaseLabelsOnASingleLine: false\n" +
+        "AllowShortIfStatementsOnASingleLine: false\n" +
+        "AllowShortLoopsOnASingleLine: false\n" +
+        "AllowShortFunctionsOnASingleLine: Empty\n" +
+        "AlwaysBreakAfterDefinitionReturnType: None\n" +
+        "AlwaysBreakTemplateDeclarations: true\n" +
+        "AlwaysBreakBeforeMultilineStrings: false\n" +
+        "BraceWrapping: {\n" +
+        "AfterClass: true,\n" +
+        "AfterControlStatement: true,\n" +
+        "AfterEnum: true,\n" +
+        "AfterFunction: true,\n" +
+        "AfterNamespace: true,\n" +
+        "AfterStruct: true,\n" +
+        "AfterUnion: true,\n" +
+        "BeforeCatch: true,\n" +
+        "BeforeElse: true,\n" +
+        "IndentBraces: false,\n" +
+        "}\n" +
+        "# SplitEmptyFunctionBody: false\n" +
+        "BreakBeforeBinaryOperators: None\n" +
+        "# BreakBeforeInheritanceComma: true\n" +
+        "BreakBeforeTernaryOperators: false\n" +
+        "# BreakConstructorInitializers: BeforeComma\n" +
+        "BinPackParameters: false\n" +
+        "BinPackArguments: false\n" +
+        "BreakStringLiterals: true\n" +
+        "ColumnLimit:     120\n" +
+        "ConstructorInitializerAllOnOneLineOrOnePerLine: true\n" +
+        "ConstructorInitializerIndentWidth: 4\n" +
+        "# CompactNamespaces: false\n" +
+        "DerivePointerAlignment: false\n" +
+        "ExperimentalAutoDetectBinPacking: false\n" +
+        "# FixNamespaceComments: true\n" +
+        "IndentCaseLabels: true\n" +
+        "IndentWrappedFunctionNames: false\n" +
+        "IndentFunctionDeclarationAfterType: false\n" +
+        "MaxEmptyLinesToKeep: 1\n" +
+        "KeepEmptyLinesAtTheStartOfBlocks: false\n" +
+        "NamespaceIndentation: All\n" +
+        "ObjCBlockIndentWidth: 2\n" +
+        "ObjCSpaceAfterProperty: false\n" +
+        "ObjCSpaceBeforeProtocolList: true\n" +
+        "PenaltyBreakBeforeFirstCallParameter: 510\n" +
+        "PenaltyBreakComment: 300\n" +
+        "PenaltyBreakString: 310\n" +
+        "PenaltyBreakFirstLessLess: 410\n" +
+        "PenaltyExcessCharacter: 1000000\n" +
+        "PenaltyReturnTypeOnItsOwnLine: 60\n" +
+        "PointerAlignment: Left\n" +
+        "SpacesBeforeTrailingComments: 1\n" +
+        "Cpp11BracedListStyle: true\n" +
+        "Standard:        Cpp11\n" +
+        "IndentWidth:     4\n" +
+        "ReflowComments: true\n" +
+        "TabWidth:        4\n" +
+        "SortIncludes: true\n" +
+        "# SortUsingDeclarations: false\n" +
+        "UseTab:          Never\n" +
+        "BreakBeforeBraces: Custom\n" +
+        "SpacesInParentheses: false\n" +
+        "SpacesInSquareBrackets: false\n" +
+        "SpacesInAngles:  false\n" +
+        "SpaceInEmptyParentheses: false\n" +
+        "SpacesInCStyleCastParentheses: false\n" +
+        "SpaceAfterCStyleCast: true\n" +
+        "SpaceAfterTemplateKeyword: false\n" +
+        "SpacesInContainerLiterals: false\n" +
+        "SpaceBeforeAssignmentOperators: true\n" +
+        "ContinuationIndentWidth: 4\n" +
+        "CommentPragmas:  '^ CLANG pragma:'\n" +
+        "ForEachMacros:   [ foreach, Q_FOREACH, BOOST_FOREACH ]\n" +
+        "SpaceBeforeParens: ControlStatements\n" +
+        "DisableFormat:   false\n" +
+        "...\n")
     f.close()
 
 
