@@ -61,7 +61,8 @@ sudo pacman -S xorg-server \
                pigz \
                pbzip2 \
                tk \
-               meson;
+               meson \
+               traceroute;
 
 sudo freshclam;
 
