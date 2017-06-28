@@ -230,6 +230,45 @@ def generateCMakeFiles(paths, args):
     f.close()
 
 
+def generateGitPreCommitHook(paths):
+    f = open(join(paths["configRes"], "pre-commit"), "w")
+    f.write("""
+#!/bin/bash
+
+echo "Starting git pre-commit hook:";
+projectRoot="$(dirname $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd))";
+projectRoot=${projectRoot%/*};
+
+## Check source code format
+gitTmpName=".xgitTmp";
+stagedFiles="`git diff --staged --name-only`";
+currentBranchName="`git rev-parse --abbrev-ref HEAD`";
+
+mkdir -p "${gitTmpName}";
+success=1;
+for stagedFile in `git diff --diff-filter=MCUBTAXR --staged --name-only | grep -E "\.h$|\.cpp$|\.c$|\.hpp$|\.cxx"`; do
+    mkdir -p $(dirname "${gitTmpName}/${stagedFile}");
+    git show :"${stagedFile}" | clang-format -style=file > "${gitTmpName}/${stagedFile}";
+    originalHash=`git show :"${stagedFile}" | md5sum | cut -d " " -f 1`;
+    formattedHash=`md5sum "${gitTmpName}/${stagedFile}" | cut -d " " -f 1`;
+    if [ "${originalHash}" != "${formattedHash}" ]; then
+        echo "${stagedFile}";
+        success=0;
+    fi
+done
+
+rm -rf "${gitTmpName}";
+if [ "$success" -eq 0 ]; then
+    echo "NOO! The above files were not formatted correctly, please run clang-format with the appropriate settings before attempting a commit!";
+    exit 255;
+fi
+
+echo "Pre-commit hook passed successfully!";
+exit 0;
+            """)
+    f.close()
+
+
 def generateDefaultSourceFiles(paths, args):
     f = open(join(paths["pubHeaders"], args.projectName.lower()) + ".h", "w")
     f.write("#ifndef " + args.projectName.upper() + "_H\n")
@@ -288,6 +327,7 @@ if __name__ == "__main__":
     generateCMakeFiles(paths, args)
     generateMakeScript(paths, args)
     generateDefaultSourceFiles(paths, args)
+    generateGitPreCommitHook(paths)
     generateDefaultEnvironmentScript(paths)
     generateDefaultInitProjectScript(paths)
     generateDefaultClangFormatConfig(paths)
