@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 from os.path import join
+from os import chmod
 from io import StringIO
 
 class BasicCMakeGenerator:
@@ -90,18 +91,145 @@ def generateDefaultEnvironmentScript(paths):
     f.write("export INSTALL_PREFIX=\"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../../sysroot/\";\n")
     f.write("export PROJECT_ROOT=\"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../../\";\n")
     f.close()
+    chmod(f.name, 0o770)
 
 
-def generateDefaultInitProjectScript(paths):
+def generateDefaultInitProjectScript(paths, args):
     f = open(join(paths["scriptRes"], "defaultInitProject.sh"), "w")
     f.write("#!/bin/bash\n")
     f.write("SCRIPT_PATH=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\";\n")
     f.write(". ${SCRIPT_PATH}/defaultBaseEnvironment.sh;\n")
     f.write("mkdir -p \"${BUILD_ROOT}\";\n")
     f.write("mkdir -p \"${INSTALL_PREFIX}\";\n")
-    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], ".clang-format"))+ "  \"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../\";\n")
+
+    projectPath = join("${PROJECT_ROOT}", args.projectName)
+
+    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], ".clang-format"))+ "  \"" + projectPath  + "\";\n")
+    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], ".gitignore"))+ "  \"" + projectPath + "\";\n\n")
+    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], ".gitmessage"))+ "  \"" + projectPath  + "\";\n\n")
+
+    f.write("pushd \"" + projectPath + "\" &> /dev/null;\n")
+    f.write("mkdir -p .git/hooks;\n")
+
+    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], "pre-commit"))+ " \"" + join(projectPath, ".git/hooks/") + "\";\n")
+
+    f.write("printf \"[user]\\n\\tname = Szilard Orban\\n\\temail = devszilardo@gmail.com\\n\" > ./.git/config \n")
+    f.write("printf \"[commit]\\n\\ttemplate = \\\"" + join(projectPath, ".gitmessage") + "\\\"\\n\" >> ./.git/config \n")
+    f.write("printf \"[diff]\\n\\talgorithm = minimal\\n\\tmnemonicprefix = true\\n\" >> ./.git/config \n")
+    f.write("printf \"[core]\\n\\teditor = vim\\n\" >> ./.git/config \n")
+    f.write("git init;\n")
+    f.write("git add .;\n")
+    f.write("git commit -m \"Basic project structure\";\n")
+    f.write("popd &> /dev/null;\n")
+    f.close()
+    chmod(f.name, 0o770)
+
+
+def generateGitPreCommitHook(paths):
+    f = open(join(paths["configRes"], "pre-commit"), "w")
+    f.write("""
+#!/bin/bash
+
+echo "Starting git pre-commit hook:";
+projectRoot="$(dirname $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd))";
+projectRoot=${projectRoot%/*};
+
+## Check source code format
+gitTmpName=".xgitTmp";
+stagedFiles="`git diff --staged --name-only`";
+currentBranchName="`git rev-parse --abbrev-ref HEAD`";
+
+mkdir -p "${gitTmpName}";
+success=1;
+for stagedFile in `git diff --diff-filter=MCUBTAXR --staged --name-only | grep -E "\.h$|\.cpp$|\.c$|\.hpp$|\.cxx"`; do
+    mkdir -p $(dirname "${gitTmpName}/${stagedFile}");
+    git show :"${stagedFile}" | clang-format -style=file > "${gitTmpName}/${stagedFile}";
+    originalHash=`git show :"${stagedFile}" | md5sum | cut -d " " -f 1`;
+    formattedHash=`md5sum "${gitTmpName}/${stagedFile}" | cut -d " " -f 1`;
+    if [ "${originalHash}" != "${formattedHash}" ]; then
+        echo "${stagedFile}";
+        success=0;
+    fi
+done
+
+rm -rf "${gitTmpName}";
+if [ "$success" -eq 0 ]; then
+    echo "NOO! The above files were not formatted correctly, please run clang-format with the appropriate settings before attempting a commit!";
+    exit 255;
+fi
+
+echo "Pre-commit hook passed successfully!";
+exit 0;
+""")
+    f.close()
+    chmod(f.name, 0o770)
+
+
+def generateGitMessage(paths):
+    f = open(join(paths["configRes"], ".gitmessage"), "w")
+    f.write("######################################### Short Description [ 80 chars max ] ###########################################\n")
+    f.write("#================================ 80 characters ================================#                                      #\n")
+    f.write("## Short description about the change topic. Should be made on a single line.                                         ##\n")
+    f.write("\n")
+    f.write("\n")
+    f.write("\n")
+    f.write("\n")
+    f.write("##                                                                                                                    ##\n")
+    f.write("##################################### Detailed Description [ 120 chars per line ]  #####################################\n")
+    f.write("#=================================================== 120 characters ===================================================#\n")
+    f.write("## A more detailed description of what the change is meant to do, and why it is necessary.                            ##\n")
+    f.write("## If the changes are related to any issues that are tracked in some system, the tracking ids should be placed on     ##\n")
+    f.write("## the first line of the detailed description, between square brackets. If multiple ids are present, separate each    ##\n")
+    f.write("## bracket enclosed id with a comma.                                                                                  ##\n")
+    f.write("##                                                                                                                    ##\n")
+    f.write("## Example:                                                                                                           ##\n")
+    f.write("# Increase the foo concentration in the fleeb                                                                         ##\n")
+    f.write("#                                              -- EMPTY LINE --                                                       ##\n")
+    f.write("# [1415], [WRT-1941], [UBA-101]                                                                                       ##\n")
+    f.write("# * Implemented the optional foo-pouch, to allow the fleeb to contain a higher dose of foo.                           ##\n")
+    f.write("# * Added more foo to the fleeb. Increasing the foo concentration will allow us to transfer the mula with increased   ##\n")
+    f.write("# efficiency.                                                                                                         ##\n")
+    f.write("*\n")
+    f.write("\n")
+    f.write("\n")
+    f.write("##                                                                                                                    ##\n")
+    f.write("########################################################################################################################\n")
     f.close()
 
+
+def generateGitIgnore(paths):
+    f = open(join(paths["configRes"], ".gitignore"), "w")
+    f.write(".DS_Store\n")
+    f.write(".*.swp")
+    f.write("*.slo\n")
+    f.write("*.pch\n")
+    f.write("*.gch\n")
+    f.write("*.obj\n")
+    f.write("*.o\n")
+    f.write("*.pdb\n")
+    f.write("*.idb\n")
+    f.write("CMakeScripts\n")
+    f.write("cmake_install.cmake\n")
+    f.write("CMakeCache.txt\n")
+    f.write("CMakeFiles\n")
+    f.write("install_manifest.txt\n")
+    f.write("compile_commands.json\n")
+    f.write("*.suo\n")
+    f.write("*.user\n")
+    f.write("*.userosscache\n")
+    f.write("*.sln.docstates\n")
+    f.write(".qmake.stash\n")
+    f.write(".qmake.cache\n")
+    f.write("CMakeLists.txt.user.*\n")
+    f.write("*.pro.user\n")
+    f.write("*.moc\n")
+    f.write("moc_*.cpp\n")
+    f.write("moc_*.h\n")
+    f.write("qrc_*.cpp\n")
+    f.write("ui_*.h\n")
+    f.write("*.qbs.user.*\n")
+    f.write("*.qbs.user\n")
+    f.close()
 
 def generateDefaultClangFormatConfig(paths):
     f = open(join(paths["configRes"], ".clang-format"), "w")
@@ -230,45 +358,6 @@ def generateCMakeFiles(paths, args):
     f.close()
 
 
-def generateGitPreCommitHook(paths):
-    f = open(join(paths["configRes"], "pre-commit"), "w")
-    f.write("""
-#!/bin/bash
-
-echo "Starting git pre-commit hook:";
-projectRoot="$(dirname $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd))";
-projectRoot=${projectRoot%/*};
-
-## Check source code format
-gitTmpName=".xgitTmp";
-stagedFiles="`git diff --staged --name-only`";
-currentBranchName="`git rev-parse --abbrev-ref HEAD`";
-
-mkdir -p "${gitTmpName}";
-success=1;
-for stagedFile in `git diff --diff-filter=MCUBTAXR --staged --name-only | grep -E "\.h$|\.cpp$|\.c$|\.hpp$|\.cxx"`; do
-    mkdir -p $(dirname "${gitTmpName}/${stagedFile}");
-    git show :"${stagedFile}" | clang-format -style=file > "${gitTmpName}/${stagedFile}";
-    originalHash=`git show :"${stagedFile}" | md5sum | cut -d " " -f 1`;
-    formattedHash=`md5sum "${gitTmpName}/${stagedFile}" | cut -d " " -f 1`;
-    if [ "${originalHash}" != "${formattedHash}" ]; then
-        echo "${stagedFile}";
-        success=0;
-    fi
-done
-
-rm -rf "${gitTmpName}";
-if [ "$success" -eq 0 ]; then
-    echo "NOO! The above files were not formatted correctly, please run clang-format with the appropriate settings before attempting a commit!";
-    exit 255;
-fi
-
-echo "Pre-commit hook passed successfully!";
-exit 0;
-            """)
-    f.close()
-
-
 def generateDefaultSourceFiles(paths, args):
     f = open(join(paths["pubHeaders"], args.projectName.lower()) + ".h", "w")
     f.write("#ifndef " + args.projectName.upper() + "_H\n")
@@ -304,6 +393,7 @@ def generateMakeScript(paths, args):
 
     f.write("echo \"Build finished!\";")
     f.close()
+    chmod(f.name, 0o770)
 
 
 if __name__ == "__main__":
@@ -327,8 +417,10 @@ if __name__ == "__main__":
     generateCMakeFiles(paths, args)
     generateMakeScript(paths, args)
     generateDefaultSourceFiles(paths, args)
+    generateDefaultClangFormatConfig(paths)
+    generateGitIgnore(paths)
+    generateGitMessage(paths)
     generateGitPreCommitHook(paths)
     generateDefaultEnvironmentScript(paths)
-    generateDefaultInitProjectScript(paths)
-    generateDefaultClangFormatConfig(paths)
+    generateDefaultInitProjectScript(paths, args)
     print("Project generation finished..")
