@@ -99,7 +99,7 @@ def generateDefaultInitProjectScript(paths):
     f.write(". ${SCRIPT_PATH}/defaultBaseEnvironment.sh;\n")
     f.write("mkdir -p \"${BUILD_ROOT}\";\n")
     f.write("mkdir -p \"${INSTALL_PREFIX}\";\n")
-    f.write("mv " + join("${PROJECT_ROOT}", join(paths["configRes"], ".clang-format"))+ "  \"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../\";\n")
+    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], ".clang-format"))+ "  \"${BASE_ENVIRONMENT_SCRIPT_PATH}/../../\";\n")
     f.close()
 
 
