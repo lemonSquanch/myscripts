@@ -111,8 +111,6 @@ def generateDefaultInitProjectScript(paths, args):
     f.write("pushd \"" + projectPath + "\" &> /dev/null;\n")
     f.write("mkdir -p .git/hooks;\n")
 
-    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], "pre-commit"))+ " \"" + join(projectPath, ".git/hooks/") + "\";\n")
-
     f.write("printf \"[user]\\n\\tname = Szilard Orban\\n\\temail = devszilardo@gmail.com\\n\" > ./.git/config \n")
     f.write("printf \"[commit]\\n\\ttemplate = \\\"" + join(projectPath, ".gitmessage") + "\\\"\\n\" >> ./.git/config \n")
     f.write("printf \"[diff]\\n\\talgorithm = minimal\\n\\tmnemonicprefix = true\\n\" >> ./.git/config \n")
@@ -120,6 +118,7 @@ def generateDefaultInitProjectScript(paths, args):
     f.write("git init;\n")
     f.write("git add .;\n")
     f.write("git commit -m \"Basic project structure\";\n")
+    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], "pre-commit"))+ " \"" + join(projectPath, ".git/hooks/") + "\";\n")
     f.write("popd &> /dev/null;\n")
     f.close()
     chmod(f.name, 0o770)
