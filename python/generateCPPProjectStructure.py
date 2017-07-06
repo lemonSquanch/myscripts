@@ -25,6 +25,7 @@ class BasicCMakeGenerator:
         strIO.write("\n")
         strIO.write("set(CMAKE_CXX_STANDARD " + self.cxxVersion + ")\n")
         strIO.write("\n")
+        strIO.write("add_subdirectory(\"${CMAKE_CURRENT_LIST_DIR}/code/test\")\n")
         strIO.write("#add_definitions(\"-DDEVELOPMENT_BUILD\")\n\n\n")
         strIO.write("set(" + self.projectName.upper() + "_PUBLIC_HEADERS \"" + \
                join(join("${CMAKE_CURRENT_LIST_DIR}", self.paths["pubHeaders"][len(self.projectName) + 1:]), self.projectName.lower()) + ".h\")\n")
@@ -373,7 +374,8 @@ def generateMakeScript(paths, args):
     f = open(join(paths["base"], "build.sh"), "w")
     f.write("#!/bin/bash\n\n")
     f.write("echo \"Building: " + args.projectName + "\";\n")
-    f.write("PROJECT_PATH=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
+    f.write("PROJECT_PATH=\"$( cd \
+            $( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
     f.write(". ${PROJECT_PATH}/../baseEnvironment.sh;\n\n")
     f.write("mkdir -p \"" + join("${BUILD_ROOT}", args.projectName) + "\";\n")
     f.write("which ctime 2> /dev/null;\n")
