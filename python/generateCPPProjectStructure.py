@@ -25,7 +25,7 @@ class BasicCMakeGenerator:
         strIO.write("\n")
         strIO.write("set(CMAKE_CXX_STANDARD " + self.cxxVersion + ")\n")
         strIO.write("\n")
-        strIO.write("add_subdirectory(\"${CMAKE_CURRENT_LIST_DIR}/code/test\")\n")
+        strIO.write("set(CMAKE_MODULE_PATH \"${CMAKE_CURRENT_LIST_DIR}/../cmakeSearchModule/\")\n")
         strIO.write("#add_definitions(\"-DDEVELOPMENT_BUILD\")\n\n\n")
         strIO.write("set(" + self.projectName.upper() + "_PUBLIC_HEADERS \"" + \
                join(join("${CMAKE_CURRENT_LIST_DIR}", self.paths["pubHeaders"][len(self.projectName) + 1:]), self.projectName.lower()) + ".h\")\n")
@@ -81,6 +81,40 @@ class MainCMakeGenerator(BasicCMakeGenerator):
         strIO.write("cmake_minimum_required(VERSION " + self.minCMakeVersion  + ")\n")
         strIO.write(super(MainCMakeGenerator, self).generateCMakeFileContent())
 
+        return strIO.getvalue()
+
+
+class TestCMakeGenerator():
+    def __init__(self, args, paths):
+        self.paths = paths
+        self.minCMakeVersion = args.minCMakeVersion
+        self.projectName = args.projectName
+        self.cxxVersion = args.cppVersion
+        self.defaultTargetType = args.defaultTargetType
+
+    def generateCMakeFileContent(self):
+        from io import StringIO
+        strIO = StringIO()
+
+        strIO.write("""
+include("${CMAKE_CURRENT_LIST_DIR}/../../CMakeLists.txt")
+
+cmake_minimum_required(VERSION 3.8.2)\n""")
+        strIO.write("set(PROJECT_NAME \"" + self.projectName + "_test\")\n")
+        strIO.write("""
+project(${PROJECT_NAME} CXX)
+
+set(CMAKE_CXX_STANDARD 14)
+
+set(TEST_SOURCES "main.cpp")
+add_executable(${PROJECT_NAME} ${TEST_SOURCES})
+
+find_package(google_test REQUIRED)
+
+set(LIBS "${google_test_LIBRARIES}" "pthread")
+target_link_libraries(${PROJECT_NAME} ${LIBS})
+target_include_directories(${PROJECT_NAME} PRIVATE ${google_test_INCLUDE_DIRS})
+""")
         return strIO.getvalue()
 
 
@@ -159,7 +193,7 @@ if [ "$success" -eq 0 ]; then
 fi
 
 echo "Pre-commit hook passed successfully!";
-exit 0;
+exit 0;\n
 """)
     f.close()
     chmod(f.name, 0o770)
@@ -230,6 +264,7 @@ def generateGitIgnore(paths):
     f.write("*.qbs.user.*\n")
     f.write("*.qbs.user\n")
     f.close()
+
 
 def generateDefaultClangFormatConfig(paths):
     f = open(join(paths["configRes"], ".clang-format"), "w")
@@ -352,9 +387,14 @@ def generatePaths(args):
 
 def generateCMakeFiles(paths, args):
     cmakeGenerator = MainCMakeGenerator(args, paths)
+    testCmakeGenerator = TestCMakeGenerator(args, paths)
 
     f = open(join(paths["base"], MainCMakeGenerator.CMakeFileName), "w")
     f.write(cmakeGenerator.generateCMakeFileContent())
+    f.close()
+
+    f = open(join(paths["test"], MainCMakeGenerator.CMakeFileName), "w")
+    f.write(testCmakeGenerator.generateCMakeFileContent())
     f.close()
 
 
@@ -369,13 +409,24 @@ def generateDefaultSourceFiles(paths, args):
     f.write("#include \"" + join(args.projectName.lower(), args.projectName.lower()) + ".h\"\n")
     f.close()
 
+    f = open(join(paths["test"], "main.cpp"), "w")
+    f.write("""
+#include "gtest/gtest.h"
+
+int main(int argc, char** argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+""")
+    f.close()
+
 
 def generateMakeScript(paths, args):
     f = open(join(paths["base"], "build.sh"), "w")
     f.write("#!/bin/bash\n\n")
     f.write("echo \"Building: " + args.projectName + "\";\n")
-    f.write("PROJECT_PATH=\"$( cd \
-            $( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
+    f.write("PROJECT_PATH=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
     f.write(". ${PROJECT_PATH}/../baseEnvironment.sh;\n\n")
     f.write("mkdir -p \"" + join("${BUILD_ROOT}", args.projectName) + "\";\n")
     f.write("which ctime 2> /dev/null;\n")
@@ -383,16 +434,32 @@ def generateMakeScript(paths, args):
 
     f.write("pushd \"" + join("${BUILD_ROOT}", args.projectName) + "\";\n\n")
     f.write("if [ \"${HAVE_CTIME}\" -eq \"0\" ]; then ctime -begin " + args.projectName + ".ct; fi\n")
-    f.write("cmake -DCMAKE_INSTALL_PREFIX:PATH=\"${INSTALL_PREFIX}\" -G Ninja \"${PROJECT_PATH}\";\n")
-    f.write("ninja;\n")
-    f.write("ninja install;\n\n")
+    f.write("""
+cmake -DCMAKE_INSTALL_PREFIX:PATH=\"${INSTALL_PREFIX}\" -DBUILD_SHARED_LIBS:BOOL=ON -G Ninja \"${PROJECT_PATH}\";
+configOk=$?;
+ninja;
+buildOk=$?;
+ninja install;
+installOk=$?;
+
+if [ "$1" == "test" ]; then
+mkdir -p ./test;
+pushd test;
+    cmake -DCMAKE_INSTALL_PREFIX:PATH="${INSTALL_PREFIX}" -DBUILD_SHARED_LIBS:BOOL=ON -G Ninja "${PROJECT_PATH}/code/test";
+    testConfigOk=$?;
+    ninja;
+    testBuildOk=$?;
+    ninja install;
+    testInstallOk=$?;
+popd;
+echo "==== Build Tests finished, config: ${testConfigOk}, build: ${testBuildOk}, install: ${testInstallOk}!";
+fi\n""")
 
     f.write("if [ \"${HAVE_CTIME}\" -eq \"0\" ]; then ctime -end " + args.projectName + ".ct; fi\n")
     f.write("if [ \"${HAVE_CTIME}\" -eq \"0\" ]; then ctime -stats " + args.projectName + ".ct; fi\n\n")
 
     f.write("popd 2&>1 /dev/null;\n\n")
-
-    f.write("echo \"Build finished!\";")
+    f.write("echo \"==== Build " + args.projectName + " finished, config: ${configOk}, build: ${buildOk}, install: ${installOk}!\";");
     f.close()
     chmod(f.name, 0o770)
 
