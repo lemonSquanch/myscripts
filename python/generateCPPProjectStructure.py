@@ -25,7 +25,7 @@ class BasicCMakeGenerator:
         strIO.write("\n")
         strIO.write("set(CMAKE_CXX_STANDARD " + self.cxxVersion + ")\n")
         strIO.write("\n")
-        strIO.write("set(CMAKE_MODULE_PATH \"${CMAKE_CURRENT_LIST_DIR}/../cmakeSearchModule/\")\n")
+        strIO.write("list(APPEND CMAKE_MODULE_PATH \"${CMAKE_CURRENT_LIST_DIR}/../../../cmakeSearchModule/\")\n")
         strIO.write("#add_definitions(\"-DDEVELOPMENT_BUILD\")\n\n\n")
         strIO.write("set(" + self.projectName.upper() + "_PUBLIC_HEADERS \"" + \
                join(join("${CMAKE_CURRENT_LIST_DIR}", self.paths["pubHeaders"][len(self.projectName) + 1:]), self.projectName.lower()) + ".h\")\n")
