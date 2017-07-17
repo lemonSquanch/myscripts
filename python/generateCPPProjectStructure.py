@@ -105,6 +105,7 @@ cmake_minimum_required(VERSION 3.8.2)\n""")
 project(${PROJECT_NAME} CXX)
 
 set(CMAKE_CXX_STANDARD 14)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../../../cmakeSearchModule/")
 
 set(TEST_SOURCES "main.cpp")
 add_executable(${PROJECT_NAME} ${TEST_SOURCES})
