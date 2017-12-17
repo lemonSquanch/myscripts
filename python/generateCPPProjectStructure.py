@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/python3
 
 import os
 import sys
@@ -20,10 +20,10 @@ class BasicCMakeGenerator:
     def generateCMakeFileContent(self):
         strIO = StringIO()
 
-        strIO.write("set(PROJECT_NAME \"" + self.projectName + "\")\n")
-        strIO.write("project(${PROJECT_NAME} CXX)\n")
+        strIO.write("project(\"" + self.projectName + "\" VERSION 0.1.0 LANGUAGES CXX)\n")
         strIO.write("\n")
         strIO.write("set(CMAKE_CXX_STANDARD " + self.cxxVersion + ")\n")
+        strIO.write("set(CXX_STANDARD_REQUIRED ON)\n")
         strIO.write("\n")
         strIO.write("list(APPEND CMAKE_MODULE_PATH \"${CMAKE_CURRENT_LIST_DIR}/../../../cmakeSearchModule/\")\n")
         strIO.write("#add_definitions(\"-DDEVELOPMENT_BUILD\")\n\n\n")
