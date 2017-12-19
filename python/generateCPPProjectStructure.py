@@ -134,15 +134,15 @@ def generateDefaultInitProjectScript(paths, args):
     f = open(join(paths["scriptRes"], "defaultInitProject.sh"), "w")
     f.write("#!/bin/bash\n")
     f.write("SCRIPT_PATH=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\";\n")
-    f.write(". ${SCRIPT_PATH}/defaultBaseEnvironment.sh;\n")
+    f.write(". \"${SCRIPT_PATH}/defaultBaseEnvironment.sh\";\n")
     f.write("mkdir -p \"${BUILD_ROOT}\";\n")
     f.write("mkdir -p \"${INSTALL_PREFIX}\";\n")
 
     projectPath = join("${PROJECT_ROOT}", args.projectName)
 
-    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], ".clang-format"))+ "  \"" + projectPath  + "\";\n")
-    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], ".gitignore"))+ "  \"" + projectPath + "\";\n\n")
-    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], ".gitmessage"))+ "  \"" + projectPath  + "\";\n\n")
+    f.write("cp \"" + join("${PROJECT_ROOT}", join(paths["configRes"], ".clang-format\""))+ "  \"" + projectPath  + "\";\n")
+    f.write("cp \"" + join("${PROJECT_ROOT}", join(paths["configRes"], ".gitignore\""))+ "  \"" + projectPath + "\";\n")
+    f.write("cp \"" + join("${PROJECT_ROOT}", join(paths["configRes"], ".gitmessage\""))+ "  \"" + projectPath  + "\";\n\n")
 
     f.write("pushd \"" + projectPath + "\" &> /dev/null;\n")
     f.write("mkdir -p .git/hooks;\n")
@@ -154,7 +154,7 @@ def generateDefaultInitProjectScript(paths, args):
     f.write("git init;\n")
     f.write("git add .;\n")
     f.write("git commit -m \"Basic project structure\";\n")
-    f.write("cp " + join("${PROJECT_ROOT}", join(paths["configRes"], "pre-commit"))+ " \"" + join(projectPath, ".git/hooks/") + "\";\n")
+    f.write("cp \"" + join("${PROJECT_ROOT}", join(paths["configRes"], "pre-commit\""))+ " \"" + join(projectPath, ".git/hooks/") + "\";\n")
     f.write("popd &> /dev/null;\n")
     f.close()
     chmod(f.name, 0o770)
