@@ -138,7 +138,7 @@ def generateDefaultInitProjectScript(paths, args):
     f.write("mkdir -p \"${BUILD_ROOT}\";\n")
     f.write("mkdir -p \"${INSTALL_PREFIX}\";\n")
 
-    projectPath = join("${PROJECT_ROOT}", args.projectName)
+    projectPath = join("${PROJECT_ROOT}", paths["base"])
 
     f.write("cp \"" + join("${PROJECT_ROOT}", join(paths["configRes"], ".clang-format\""))+ "  \"" + projectPath  + "\";\n")
     f.write("cp \"" + join("${PROJECT_ROOT}", join(paths["configRes"], ".gitignore\""))+ "  \"" + projectPath + "\";\n")
@@ -317,7 +317,7 @@ def generateDefaultClangFormatConfig(paths):
         "IndentFunctionDeclarationAfterType: false\n" +
         "MaxEmptyLinesToKeep: 1\n" +
         "KeepEmptyLinesAtTheStartOfBlocks: false\n" +
-        "NamespaceIndentation: All\n" +
+        "NamespaceIndentation: None\n" +
         "ObjCBlockIndentWidth: 2\n" +
         "ObjCSpaceAfterProperty: false\n" +
         "ObjCSpaceBeforeProtocolList: true\n" +
@@ -483,6 +483,7 @@ if __name__ == "__main__":
             sys.exit(-1)
 
     paths = generatePaths(args)
+    args.projectName = args.projectName.replace(" ", "_")
     generateCMakeFiles(paths, args)
     generateMakeScript(paths, args)
     generateDefaultSourceFiles(paths, args)
