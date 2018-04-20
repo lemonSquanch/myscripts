@@ -6,6 +6,7 @@ import argparse
 from os.path import join
 from os import chmod
 from io import StringIO
+import datetime
 
 class BasicCMakeGenerator:
     CMakeFileName = "CMakeLists.txt"
@@ -78,6 +79,8 @@ class MainCMakeGenerator(BasicCMakeGenerator):
         from io import StringIO
         strIO = StringIO()
 
+        strIO.write("# Copyright " + str(datetime.datetime.now().year) + " - " + str(datetime.datetime.now().year + 1) + " Szilard Orban, <devszilardo@gmail.com>\n")
+        strIO.write("# All rights reserved.\n")
         strIO.write("cmake_minimum_required(VERSION " + self.minCMakeVersion  + ")\n")
         strIO.write(super(MainCMakeGenerator, self).generateCMakeFileContent())
 
@@ -470,8 +473,8 @@ if __name__ == "__main__":
 
     argParser = argparse.ArgumentParser(description="Generates the base structure of a new c++ project.")
     argParser.add_argument("projectName", help="The alphanum name of your new project.")
-    argParser.add_argument("--cppVersion", help="The c++ standard that the project should use. Default is 14.", choices=["03","11","14","17"], default="14")
-    argParser.add_argument("--minCMakeVersion", default="3.8.2", help="CMake version requirement.")
+    argParser.add_argument("--cppVersion", help="The c++ standard that the project should use. Default is 17.", choices=["03","11","14","17"], default="17")
+    argParser.add_argument("--minCMakeVersion", default="3.10.0", help="CMake version requirement.")
     argParser.add_argument("--defaultTargetType", choices=["lib", "exec"], default="lib", help="The type of target that will be built in the project(library, executable). Default value is library.")
     args = argParser.parse_args()
 
